@@ -31,37 +31,86 @@ const DataTable = async (config) => {
     string += `<tr id=${tableId}-${indexes[i]}><td>${indexes[i]}</td>`;
     config.columns.forEach((e) => {
       if (typeof e.value === "function") {
-        string += `<td>${e.value(users[i])}</td>`;
+        string += `<td class="tdElement">${e.value(users[i])}</td>`;
       } else if (users[i][e.value] != undefined) {
-        string += `<td>${users[i][e.value]}</td>`;
+        string += `<td class="tdElement">${users[i][e.value]}</td>`;
       }
     });
     string += `<td><button class="table-button--delete" data-id=${indexes[i]}-${tableId}>Видалити</button></td>`;
-    if(config.parent==="#productsTable"){
-      string += `<td><button class="table-button--edit" id=${indexes[i]}-${tableId}>Редагувати</button></td>`
-    }
     string += `</tr>`;
   }
   tbody.innerHTML += string;
   table.appendChild(tbody);
   dataTable.appendChild(table);
   const tbodyId = `${tableId}-tbody`
-  addButton.addEventListener("click",()=>{
-    createModalWindow(0,config,tableId,indexes)
-  })
+  createModalWindow(0,config,tableId,indexes)
   // const buttons = document.querySelectorAll(".table-button--delete");
   dataTable.addEventListener("click", (event) => {
     if (event.target.classList.contains("table-button--delete")) {
       // console.log(config)
       const button = event.target;
-      deleteItem(button.getAttribute("data-id").split("-")[0],tbodyId, config);
-    }
-    if (event.target.classList.contains("table-button--edit")) {
-      // console.log(config)
-      const button = event.target;
-      createModalWindow(button.getAttribute("id").split("-")[0],config,tableId,indexes)
+      deleteItem(button.getAttribute("data-id").split("-")[0],tbodyId, config,indexes);
     }
   });
+  if(config.parent==='#productsTable'){
+    dataTable.addEventListener("dblclick",(event1)=>{
+      if(event1.target.classList.contains("tdElement")){
+        const id = event1.target.parentNode.getAttribute("id").split("-")[1]
+
+        const element = event1.target;
+        const currentText = element.innerText;
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.value = currentText;
+
+        // Заменяем элемент текстом на инпут
+        element.innerHTML = "";
+        element.appendChild(input);
+        input.focus();
+
+        // Обработчик для сохранения текста при потере фокуса
+        input.addEventListener("blur", function() {
+          element.innerText = input.value || currentText;
+          const parentElement = event1.target.parentNode.querySelectorAll(".tdElement")
+          const product = {
+            price: +parentElement[1].textContent.split(" ")[0],
+            currency:parentElement[1].textContent.split(" ")[1],
+            color:parentElement[2].textContent,
+            title:parentElement[0].textContent
+          }
+          console.log(product)
+          fetch(config.apiUrl+`/${id}`,{
+            method:"PUT",
+            body:JSON.stringify(product)
+          }).catch((err)=>{
+            console.log(err)
+          })
+        });
+
+        // Обработчик для сохранения текста при нажатии Enter
+        input.addEventListener("keydown", function(event) {
+          if (event.key === "Enter") {
+            element.innerText = input.value || currentText;
+            const parentElement = event1.target.parentNode.querySelectorAll(".tdElement")
+            const product = {
+              price: +parentElement[1].textContent.split(" ")[0],
+              currency:parentElement[1].textContent.split(" ")[1],
+              color:parentElement[2].textContent,
+              title:parentElement[0].textContent
+            }
+            console.log(product)
+            fetch(config.apiUrl+`/${id}`,{
+              method:"PUT",
+              body:JSON.stringify(product)
+            }).catch((err)=>{
+              console.log(err)
+            })
+          }
+        });
+      }
+    })
+  }
 };
 
 const generateTableId = () => {
@@ -208,7 +257,7 @@ const getAge = (birthday) => {
 };
 
 const getColorLabel = (product) => {
-  return product;
+  console.log(product.length)
 };
 
 const config1 = {
@@ -244,7 +293,7 @@ const config2 = {
     },
     {
       title: 'Колір', 
-      value: (product) => getColorLabel(product.color), // функцію getColorLabel вам потрібно створити
+      value: (product) => getColorLabel(product), // функцію getColorLabel вам потрібно створити
       input: { type: 'color', name: 'color' }
     }, 
   ],
